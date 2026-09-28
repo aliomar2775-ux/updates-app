@@ -1,0 +1,9 @@
+{
+  "name": "signals-updates-log",
+  "version": "1.0.0",
+  "description": "سجل تحديث الأجهزة - كتيبة الاتصالات",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "exceljs": "^4.4.0" }
+}
