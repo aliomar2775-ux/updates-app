@@ -1,0 +1,14 @@
+# ===== بيانات الدخول (غيّرها متى شئت ثم أعد تشغيل الخادم) =====
+APP_USER=admin@12
+APP_PASS=admin123
+
+# ===== إعدادات عامة =====
+PORT=3000
+TZ_NAME=Asia/Baghdad
+DATA_DIR=./data
+
+# ===== حفظ البيانات على GitHub (اختياري - للسيرفرات المجانية) =====
+# GITHUB_TOKEN=github_pat_xxxxxxxx
+# GITHUB_REPO=اسمك/اسم-المستودع
+# GITHUB_BRANCH=data
+# GITHUB_PATH=data/db.json
