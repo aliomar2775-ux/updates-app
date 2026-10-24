@@ -2,8 +2,18 @@
   "name": "signals-updates-log",
   "version": "1.0.0",
   "description": "سجل تحديث الأجهزة - كتيبة الاتصالات",
-  "main": "server.js",
-  "scripts": { "start": "node server.js" },
-  "engines": { "node": ">=18" },
-  "dependencies": { "exceljs": "^4.4.0" }
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "node server.js",
+    "app": "electron ."
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  },
+  "devDependencies": {
+    "electron": "^45.0.0"
+  }
 }

@@ -303,7 +303,8 @@ const server = http.createServer(async (req, res) => {
     const p = new URL(req.url, 'http://x').pathname;
     if (p === '/healthz') { res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end('ok'); }
 
-    if (AUTH_ON) {
+    const isPublicAsset = p.startsWith('/fonts/') || p === '/icon.png' || p === '/favicon.ico';
+    if (!isPublicAsset && AUTH_ON) {
       const ip = ipOf(req);
       if (locked(ip)) { res.writeHead(429, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('محاولات كثيرة، حاول بعد 15 دقيقة'); }
       if (!authorized(req)) {
@@ -406,3 +407,5 @@ loadRecords()
     console.log(AUTH_ON ? 'الحماية بكلمة مرور: مفعّلة' : '⚠ الحماية بكلمة مرور: معطّلة (عيّن APP_USER و APP_PASS)');
     console.log(GH.enabled ? `مزامنة GitHub: مفعّلة (${GH.repo} / ${GH.branch})` : 'مزامنة GitHub: غير مفعّلة');
   }));
+
+module.exports = server;
