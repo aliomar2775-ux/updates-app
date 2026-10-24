@@ -408,4 +408,12 @@ loadRecords()
     console.log(GH.enabled ? `مزامنة GitHub: مفعّلة (${GH.repo} / ${GH.branch})` : 'مزامنة GitHub: غير مفعّلة');
   }));
 
+server.on('error', err => {
+  if (err.code === 'EADDRINUSE') {
+    console.log(`المنفذ ${PORT} مستخدم مسبقاً.`);
+  } else {
+    console.error('خطأ في الخادم:', err.message);
+  }
+});
+
 module.exports = server;

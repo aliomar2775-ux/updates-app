@@ -1,9 +1,7 @@
 @echo off
-chcp 65001 > nul
-title Signals Updates Log - كتيبة الاتصالات
 cd /d "%~dp0"
-echo ====================================================
-echo      كتيبة الاتصالات - سجل تحديث الأجهزة
-echo ====================================================
-echo جاري تشغيل التطبيق المكتبي، يرجى الانتظار...
-npm run app
+call npm run app
+if %ERRORLEVEL% NEQ 0 (
+  echo Error launching application: %ERRORLEVEL%
+  pause
+)

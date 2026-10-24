@@ -36,7 +36,7 @@ function waitForServer(callback, maxAttempts = 30) {
       }
     });
     req.end();
-  }, 300);
+  }, 250);
 }
 
 function createWindow() {
@@ -48,16 +48,16 @@ function createWindow() {
     title: 'كتيبة الاتصالات — سجل تحديث الأجهزة',
     icon: path.join(__dirname, 'public', 'icon.png'),
     autoHideMenuBar: true,
+    show: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
     }
   });
 
-  // المصادقة التلقائية لنافذة التطبيق المكتبي حتى لا يطلب كلمة مرور محلياً
-  app.on('login', (event, webContents, request, authInfo, callback) => {
-    event.preventDefault();
-    callback(AUTH_USER, AUTH_PASS);
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+    mainWindow.focus();
   });
 
   mainWindow.loadURL(`http://localhost:${PORT}`);
@@ -67,6 +67,12 @@ function createWindow() {
   });
 }
 
+// المصادقة التلقائية لنافذة التطبيق المكتبي حتى لا يطلب كلمة مرور محلياً
+app.on('login', (event, webContents, request, authInfo, callback) => {
+  event.preventDefault();
+  callback(AUTH_USER, AUTH_PASS);
+});
+
 // تشغيل نسخة واحدة فقط من التطبيق
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
@@ -75,6 +81,7 @@ if (!gotSingleInstanceLock) {
   app.on('second-instance', () => {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
       mainWindow.focus();
     }
   });
