@@ -148,7 +148,6 @@ tbody tr.editing{outline:2px solid var(--gold);outline-offset:-2px;background:rg
     </div>
     <h1>كتيبة الاتصالات</h1>
     <div class="divider"><b></b></div>
-    <p class="byline">  </p>
   </header>
 
   <section class="panel" aria-labelledby="form-title">
@@ -277,7 +276,10 @@ async function removeRec(r){
 }
 
 /* ---- save (إلى الخادم فقط، بدون تنزيل) ---- */
-fields.forEach(id => $(id).addEventListener("input", () => $(id).closest(".field").classList.remove("invalid")));
+fields.forEach(id => {
+  $(id).addEventListener("input", () => $(id).closest(".field").classList.remove("invalid"));
+  $(id).addEventListener("change", () => $(id).closest(".field").classList.remove("invalid"));
+});
 $("form").addEventListener("submit", async e => {
   e.preventDefault();
   let ok = true;
@@ -306,9 +308,19 @@ $("form").addEventListener("submit", async e => {
 });
 
 /* ---- تنزيل نسخة من ملف Excel (يدوياً فقط) ---- */
-$("dl").addEventListener("click", () => {
+$("dl").addEventListener("click", async () => {
   if (!records.length){ toast("لا توجد سجلات لتنزيلها", true); return; }
-  location.href = "/api/download";
+  try {
+    const r = await fetch("/api/download");
+    if (!r.ok) { const j = await r.json().catch(() => ({})); toast(j.error || "حدث خطأ أثناء التنزيل", true); return; }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "سجل_تحديث_الأجهزة.xlsx";
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
+  } catch(e) { toast("تعذر تنزيل الملف", true); }
 });
 
 /* ---- مزامنة مع الأجهزة الأخرى ---- */

@@ -190,7 +190,15 @@ async function doSave() {
   ws.autoFilter = { from: 'A1', to: 'H1' };
   const tmp = XLSX_PATH + '.tmp';
   await wb.xlsx.writeFile(tmp);
-  fs.renameSync(tmp, XLSX_PATH);
+  /* محاولة إعادة التسمية مع إعادة المحاولة عند قفل الملف على ويندوز (EBUSY/EPERM) */
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try { fs.renameSync(tmp, XLSX_PATH); break; }
+    catch (err) {
+      if ((err.code === 'EBUSY' || err.code === 'EPERM') && attempt < 4) {
+        await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      } else throw err;
+    }
+  }
 }
 function saveToFile() {
   const p = saveChain.catch(() => {}).then(doSave);
@@ -242,6 +250,7 @@ function sanitizeRestored(arr) {
 function readBody(req, limit = 1e5) {
   return new Promise((ok, no) => {
     let d = '';
+    req.setEncoding('utf8'); // منع تشوه النصوص العربية عند انقسام حرف متعدد البايتات بين قطعتين
     req.on('data', c => { d += c; if (d.length > limit) { req.destroy(); no(httpErr(413, 'الطلب كبير جداً')); } });
     req.on('end', () => { try { ok(JSON.parse(d || '{}')); } catch { no(httpErr(400, 'بيانات غير صالحة')); } });
     req.on('error', no);
@@ -260,13 +269,19 @@ function authorized(req) {
 }
 /* حماية من تخمين كلمة المرور: 10 محاولات خاطئة = حظر 15 دقيقة */
 const fails = new Map();
-const ipOf = req => String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+/* عدم الاعتماد على X-Forwarded-For لأنها قابلة للتزييف — استخدام عنوان الاتصال الحقيقي فقط */
+const ipOf = req => String(req.socket.remoteAddress || '').trim();
 function locked(ip) {
   const f = fails.get(ip);
   if (!f || f.n < 10) return false;
   if (Date.now() - f.t < 15 * 60e3) return true;
   fails.delete(ip); return false;
 }
+/* تنظيف دوري لخريطة المحاولات الفاشلة لمنع تسريب الذاكرة */
+setInterval(() => {
+  const cutoff = Date.now() - 20 * 60e3;
+  for (const [ip, f] of fails) { if (f.t < cutoff) fails.delete(ip); }
+}, 5 * 60e3);
 const snapshot = () => ({ version, records });
 
 const RESTORE_PAGE = `<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -354,6 +369,20 @@ const server = http.createServer(async (req, res) => {
       await saveToFile();
       return send(res, 200, snapshot());
     }
+
+    /* ---------- خدمة الملفات الثابتة من مجلد public ---------- */
+    if (req.method === 'GET') {
+      const MIME = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.woff2': 'font/woff2' };
+      const safePath = path.normalize(p).replace(/^\.\.[/\\]/, '');
+      const filePath = path.join(__dirname, 'public', safePath);
+      if (filePath.startsWith(path.join(__dirname, 'public')) && fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+        const ext = path.extname(filePath).toLowerCase();
+        const mime = MIME[ext] || 'application/octet-stream';
+        res.writeHead(200, { 'Content-Type': mime + (mime.startsWith('text/') ? '; charset=utf-8' : ''), 'Cache-Control': 'public, max-age=3600' });
+        return fs.createReadStream(filePath).pipe(res);
+      }
+    }
+
     send(res, 404, { error: 'غير موجود' });
   } catch (e) {
     if (!e.status) console.error(e);
